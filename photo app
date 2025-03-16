@@ -1,0 +1,139 @@
+dependencies {
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+    implementation 'com.theartofdev.edmodo:android-image-cropper:2.8.0'
+}
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+<application
+    android:requestLegacyExternalStorage="true">
+    ...
+</application>
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"/>
+
+    <Button
+        android:id="@+id/btnSelectImage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="Select Image"/>
+</RelativeLayout>
+
+
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.widget.Button;
+import android.widget.ImageView;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
+
+import java.io.IOException;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int PICK_IMAGE = 1;
+    private ImageView imageView;
+    private Button btnSelectImage;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        imageView = findViewById(R.id.imageView);
+        btnSelectImage = findViewById(R.id.btnSelectImage);
+
+        btnSelectImage.setOnClickListener(v -> selectImage());
+    }
+
+    private void selectImage() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+            CropImage.activity(imageUri)
+                    .setGuidelines(CropImageView.Guidelines.ON)
+                    .start(this);
+        }
+
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri resultUri = result.getUri();
+                try {
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), resultUri);
+                    imageView.setImageBitmap(bitmap);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.widget.Toast;
+
+private void applyFilter(String filterType) {
+    if (imageView.getDrawable() == null) {
+        Toast.makeText(this, "No image selected!", Toast.LENGTH_SHORT).show();
+        return;
+    }
+    
+    ColorMatrix matrix = new ColorMatrix();
+    
+    if (filterType.equals("GRAYSCALE")) {
+        matrix.setSaturation(0);
+    } else if (filterType.equals("SEPIA")) {
+        matrix.setScale(1f, 0.9f, 0.6f, 1f);
+    }
+
+    ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
+    imageView.setColorFilter(filter);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
